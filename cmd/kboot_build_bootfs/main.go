@@ -35,18 +35,13 @@ func init() {
 }
 
 func runBuild(cmd *cobra.Command, args []string) error {
-	// 加载配置文件
+	// 配置文件解析
 	cfg, err := config.LoadConfig(configFile)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Configuration:\n")
-	fmt.Printf("   Distribution: %s %s\n", cfg.Distribution, cfg.Version)
-	fmt.Printf("   Supported architectures: %v\n", cfg.ArchSupported)
-	fmt.Printf("   Mirror: %s\n", cfg.Mirror)
-
-	// 如果没有指定架构，使用配置文件中的或默认架构
+	// 如果没有指定架构，使用配置文件中的
 	if arch == "" {
 		if cfg.ArchCurrent != "" {
 			arch = cfg.ArchCurrent
@@ -58,6 +53,10 @@ func runBuild(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("architecture %s is not supported, supported architectures: %v", arch, cfg.ArchSupported)
 	}
 
+	fmt.Printf("Configuration:\n")
+	fmt.Printf("   Distribution: %s %s\n", cfg.Distribution, cfg.Version)
+	fmt.Printf("   Supported architectures: %v\n", cfg.ArchSupported)
+	fmt.Printf("   Mirror: %s\n", cfg.Mirror)
 	fmt.Printf("   Target architecture: %s\n", arch)
 
 	// 创建构建器
@@ -72,8 +71,7 @@ func runBuild(cmd *cobra.Command, args []string) error {
 }
 
 func main() {
-	err := rootCmd.Execute()
-	if err != nil {
+	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}

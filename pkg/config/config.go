@@ -23,16 +23,6 @@ type Config struct {
 	ArchSupportedRaw string `ini:"arch_supported"`
 }
 
-// UbuntuSuiteMap Ubuntu版本与suite的映射
-var UbuntuSuiteMap = map[string]string{
-	"5.10":  "breezy",
-	"16.04": "xenial",
-	"18.04": "bionic",
-	"20.04": "focal",
-	"22.04": "jammy",
-	"24.04": "noble",
-}
-
 // LoadConfig 加载配置文件
 func LoadConfig(configPath string) (*Config, error) {
 	cfg, err := ini.Load(configPath)
@@ -130,15 +120,6 @@ func (c *Config) SaveToBootfs(bootfsPath string) error {
 	}
 
 	return nil
-}
-
-// GetSuite 获取Ubuntu的suite名称
-func (c *Config) GetSuite() string {
-	if suite, ok := UbuntuSuiteMap[c.Version]; ok {
-		return suite
-	}
-	// 如果找不到映射，使用版本号作为suite
-	return c.Version
 }
 
 // GetAllPackages 获取所有要安装的包

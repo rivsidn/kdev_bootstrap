@@ -80,8 +80,8 @@ func (b *BootfsBuilder) checkEnvironment() error {
 
 // setBootfsPath 设置 bootfs 路径
 func (b *BootfsBuilder) setBootfsPath() {
-	if b.outputDir != "" {
-		b.BootfsPath = b.outputDir
+	if b.OutputDir != "" {
+		b.BootfsPath = b.OutputDir
 		return
 	}
 
@@ -100,6 +100,10 @@ func (b *BootfsBuilder) runDebootstrap() error {
 	fmt.Println("\nRunning debootstrap...")
 
 	suite := b.Config.GetSuite()
+	if suite == "" {
+		return fmt.Errorf("Not find the valid suite, add first")
+	}
+
 	mirror := b.Config.Mirror
 
 	args := []string{
@@ -128,9 +132,3 @@ func (b *BootfsBuilder) runDebootstrap() error {
 	return nil
 }
 
-// chrootRun 在 chroot 环境中运行命令
-func (b *BootfsBuilder) chrootRun(name string, args ...string) error {
-	chrootArgs := []string{b.BootfsPath, name}
-	chrootArgs = append(chrootArgs, args...)
-	return utils.RunCommand("chroot", chrootArgs...)
-}
