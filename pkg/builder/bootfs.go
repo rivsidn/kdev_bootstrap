@@ -39,12 +39,12 @@ func (b *BootfsBuilder) Build() error {
 
 	// 3. 检查是否已存在
 	if utils.DirExists(b.BootfsPath) {
-		fmt.Printf("目录 %s 已存在\n", b.BootfsPath)
-		if !utils.Confirm("是否删除并重新创建？") {
-			return fmt.Errorf("用户取消操作")
+		fmt.Printf("Directory %s already exists\n", b.BootfsPath)
+		if !utils.Confirm("Delete and recreate?") {
+			return fmt.Errorf("operation cancelled by user")
 		}
 		if err := os.RemoveAll(b.BootfsPath); err != nil {
-			return fmt.Errorf("删除目录失败: %v", err)
+			return fmt.Errorf("failed to remove directory: %v", err)
 		}
 	}
 
@@ -74,7 +74,7 @@ func (b *BootfsBuilder) Build() error {
 		return err
 	}
 
-	fmt.Printf("\nBootfs 构建成功: %s\n", b.BootfsPath)
+	fmt.Printf("\nBootfs build successful: %s\n", b.BootfsPath)
 	return nil
 }
 
@@ -82,7 +82,7 @@ func (b *BootfsBuilder) Build() error {
 func (b *BootfsBuilder) checkEnvironment() error {
 	// 检查是否为 root
 	if !utils.CheckRoot() {
-		return fmt.Errorf("请使用 sudo 或 root 权限运行")
+		return fmt.Errorf("please run with sudo or root privileges")
 	}
 
 	// 检查依赖
@@ -93,7 +93,7 @@ func (b *BootfsBuilder) checkEnvironment() error {
 
 	// 验证架构
 	if !b.Config.ValidateArch(b.Arch) {
-		return fmt.Errorf("不支持的架构: %s，支持的架构: %s", 
+		return fmt.Errorf("unsupported architecture: %s, supported architectures: %s", 
 			b.Arch, strings.Join(b.Config.ArchSupported, ", "))
 	}
 
@@ -116,7 +116,7 @@ func (b *BootfsBuilder) setBootfsPath() {
 
 // runDebootstrap 执行 debootstrap
 func (b *BootfsBuilder) runDebootstrap() error {
-	fmt.Println("\n执行 debootstrap...")
+	fmt.Println("\nRunning debootstrap...")
 	
 	suite := b.Config.GetSuite()
 	mirror := b.Config.Mirror
@@ -134,7 +134,7 @@ func (b *BootfsBuilder) runDebootstrap() error {
 	args = append(args, suite, b.BootfsPath, mirror)
 	
 	if err := utils.RunCommand("debootstrap", args...); err != nil {
-		return fmt.Errorf("debootstrap 失败: %v", err)
+		return fmt.Errorf("debootstrap failed: %v", err)
 	}
 	
 	return nil
@@ -147,11 +147,11 @@ func (b *BootfsBuilder) installPackages() error {
 		return nil
 	}
 	
-	fmt.Printf("\n安装额外的包: %s\n", strings.Join(packages, ", "))
+	fmt.Printf("\nInstalling additional packages: %s\n", strings.Join(packages, ", "))
 	
 	// 更新包列表
 	if err := b.chrootRun("apt-get", "update"); err != nil {
-		fmt.Printf("更新包列表失败，继续安装...\n")
+		fmt.Printf("Failed to update package list, continuing installation...\n")
 	}
 	
 	// 安装包
@@ -159,7 +159,7 @@ func (b *BootfsBuilder) installPackages() error {
 	args = append(args, packages...)
 	
 	if err := b.chrootRun("apt-get", args...); err != nil {
-		fmt.Printf("部分包安装失败: %v\n", err)
+		fmt.Printf("Some packages failed to install: %v\n", err)
 	}
 	
 	// 清理
@@ -170,13 +170,13 @@ func (b *BootfsBuilder) installPackages() error {
 
 // configureSystem 配置系统
 func (b *BootfsBuilder) configureSystem() error {
-	fmt.Println("\n配置系统...")
+	fmt.Println("\nConfiguring system...")
 	
 	// 设置 hostname
 	hostnamePath := filepath.Join(b.BootfsPath, "etc", "hostname")
 	hostname := fmt.Sprintf("%s-%s", b.Config.Distribution, b.Config.Version)
 	if err := os.WriteFile(hostnamePath, []byte(hostname+"\n"), 0644); err != nil {
-		fmt.Printf("设置 hostname 失败: %v\n", err)
+		fmt.Printf("Failed to set hostname: %v\n", err)
 	}
 	
 	// 设置 hosts
@@ -190,7 +190,7 @@ ff02::1		ip6-allnodes
 ff02::2		ip6-allrouters
 `, hostname)
 	if err := os.WriteFile(hostsPath, []byte(hostsContent), 0644); err != nil {
-		fmt.Printf("设置 hosts 失败: %v\n", err)
+		fmt.Printf("Failed to set hosts: %v\n", err)
 	}
 	
 	// 设置 root 密码为空（用于开发环境）
@@ -202,7 +202,7 @@ ff02::2		ip6-allrouters
 nameserver 8.8.4.4
 `
 	if err := os.WriteFile(resolvPath, []byte(resolvContent), 0644); err != nil {
-		fmt.Printf("设置 DNS 失败: %v\n", err)
+		fmt.Printf("Failed to set DNS: %v\n", err)
 	}
 	
 	// 创建必要的目录

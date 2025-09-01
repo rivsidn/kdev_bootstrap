@@ -15,10 +15,10 @@ func RunCommand(name string, args ...string) error {
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 	
-	fmt.Printf("执行命令: %s %s\n", name, strings.Join(args, " "))
+	fmt.Printf("Executing command: %s %s\n", name, strings.Join(args, " "))
 	
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("命令执行失败 %s: %v", name, err)
+		return fmt.Errorf("command execution failed %s: %v", name, err)
 	}
 	
 	return nil
@@ -29,7 +29,7 @@ func RunCommandOutput(name string, args ...string) (string, error) {
 	cmd := exec.Command(name, args...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return "", fmt.Errorf("命令执行失败 %s: %v\n输出: %s", name, err, string(output))
+		return "", fmt.Errorf("command execution failed %s: %v\noutput: %s", name, err, string(output))
 	}
 	return string(output), nil
 }
@@ -64,7 +64,7 @@ func DirExists(path string) bool {
 func CreateDir(path string) error {
 	if !DirExists(path) {
 		if err := os.MkdirAll(path, 0755); err != nil {
-			return fmt.Errorf("创建目录失败 %s: %v", path, err)
+			return fmt.Errorf("failed to create directory %s: %v", path, err)
 		}
 	}
 	return nil
@@ -92,7 +92,7 @@ func CheckDependencies(deps []string) error {
 	}
 	
 	if len(missing) > 0 {
-		return fmt.Errorf("缺少以下依赖: %s\n请运行: sudo apt-get install %s", 
+		return fmt.Errorf("missing dependencies: %s\nplease run: sudo apt-get install %s", 
 			strings.Join(missing, ", "), strings.Join(missing, " "))
 	}
 	

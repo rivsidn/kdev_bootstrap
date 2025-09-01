@@ -37,7 +37,7 @@ var UbuntuSuiteMap = map[string]string{
 func LoadConfig(configPath string) (*Config, error) {
 	cfg, err := ini.Load(configPath)
 	if err != nil {
-		return nil, fmt.Errorf("无法加载配置文件 %s: %v", configPath, err)
+		return nil, fmt.Errorf("unable to load configuration file %s: %v", configPath, err)
 	}
 
 	// 获取第一个非默认section
@@ -52,7 +52,7 @@ func LoadConfig(configPath string) (*Config, error) {
 	}
 
 	if section == nil {
-		return nil, fmt.Errorf("配置文件中没有找到有效的section")
+		return nil, fmt.Errorf("no valid section found in configuration file")
 	}
 
 	config := &Config{
@@ -62,7 +62,7 @@ func LoadConfig(configPath string) (*Config, error) {
 
 	// 解析基本字段
 	if err := section.MapTo(config); err != nil {
-		return nil, fmt.Errorf("解析配置失败: %v", err)
+		return nil, fmt.Errorf("failed to parse configuration: %v", err)
 	}
 
 	// 解析 arch_supported
@@ -98,14 +98,14 @@ func (c *Config) SaveToBootfs(bootfsPath string) error {
 	
 	// 确保目录存在
 	if err := os.MkdirAll(filepath.Dir(configPath), 0755); err != nil {
-		return fmt.Errorf("创建目录失败: %v", err)
+		return fmt.Errorf("failed to create directory: %v", err)
 	}
 
 	// 创建新的 INI 文件
 	cfg := ini.Empty()
 	section, err := cfg.NewSection(c.sectionName)
 	if err != nil {
-		return fmt.Errorf("创建section失败: %v", err)
+		return fmt.Errorf("failed to create section: %v", err)
 	}
 
 	// 写入基本字段
@@ -126,7 +126,7 @@ func (c *Config) SaveToBootfs(bootfsPath string) error {
 
 	// 保存文件
 	if err := cfg.SaveTo(configPath); err != nil {
-		return fmt.Errorf("保存配置文件失败: %v", err)
+		return fmt.Errorf("failed to save configuration file: %v", err)
 	}
 
 	return nil

@@ -16,17 +16,17 @@ var (
 
 var rootCmd = &cobra.Command{
 	Use:   "kboot_build_docker",
-	Short: "通过根文件系统生成 Docker 镜像",
-	Long: `kboot_build_docker 使用已构建的 bootfs（根文件系统）创建 Docker 镜像。
+	Short: "Generate Docker image from root filesystem",
+	Long: `kboot_build_docker creates Docker image using built bootfs (root filesystem).
 	
-这个镜像主要用于内核编译环境，包含了构建内核所需的基本工具和库。`,
+This image is mainly used for kernel compilation environment, including basic tools and libraries needed for kernel building.`,
 	RunE: runBuild,
 }
 
 func init() {
-	rootCmd.Flags().StringVarP(&bootfsPath, "bootfs", "b", "", "根文件系统路径（必需）")
-	rootCmd.Flags().StringVarP(&dockerfilePath, "dockerfile", "f", "", "Dockerfile 文件路径（可选）")
-	rootCmd.Flags().StringVar(&imageName, "image", "", "镜像名称（格式：name:tag，可选）")
+	rootCmd.Flags().StringVarP(&bootfsPath, "bootfs", "b", "", "Root filesystem path (required)")
+	rootCmd.Flags().StringVarP(&dockerfilePath, "dockerfile", "f", "", "Dockerfile file path (optional)")
+	rootCmd.Flags().StringVar(&imageName, "image", "", "Image name (format: name:tag, optional)")
 	
 	rootCmd.MarkFlagRequired("bootfs")
 }
@@ -38,14 +38,14 @@ func runBuild(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	
-	fmt.Printf("配置信息:\n")
-	fmt.Printf("   发行版: %s %s\n", builder.Config.Distribution, builder.Config.Version)
-	fmt.Printf("   架构: %s\n", builder.Config.ArchCurrent)
+	fmt.Printf("Configuration:\n")
+	fmt.Printf("   Distribution: %s %s\n", builder.Config.Distribution, builder.Config.Version)
+	fmt.Printf("   Architecture: %s\n", builder.Config.ArchCurrent)
 	fmt.Printf("   Bootfs: %s\n", bootfsPath)
 	
 	// 执行构建
 	if err := builder.Build(); err != nil {
-		return fmt.Errorf("构建失败: %v", err)
+		return fmt.Errorf("build failed: %v", err)
 	}
 	
 	return nil
@@ -53,7 +53,7 @@ func runBuild(cmd *cobra.Command, args []string) error {
 
 func main() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "错误: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
 }

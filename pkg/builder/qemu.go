@@ -24,7 +24,7 @@ func NewQemuBuilder(bootfsPath string, rootfsImage string, imageSize string) (*Q
 	// 加载配置文件
 	configPath := filepath.Join(bootfsPath, "etc", "bootstrap.conf")
 	if !utils.FileExists(configPath) {
-		return nil, fmt.Errorf("找不到配置文件: %s", configPath)
+		return nil, fmt.Errorf("configuration file not found: %s", configPath)
 	}
 	
 	cfg, err := config.LoadConfig(configPath)
@@ -86,9 +86,9 @@ func (b *QemuBuilder) Build() error {
 	// 7. 安装 bootloader（可选）
 	b.installBootloader(mountPoint)
 	
-	fmt.Printf("\nQEMU 镜像构建成功: %s\n", b.RootfsImage)
-	fmt.Printf("   大小: %s\n", b.ImageSize)
-	fmt.Printf("   使用方法:\n")
+	fmt.Printf("\nQEMU image build successful: %s\n", b.RootfsImage)
+	fmt.Printf("   Size: %s\n", b.ImageSize)
+	fmt.Printf("   Usage:\n")
 	fmt.Printf("   qemu-system-x86_64 -hda %s -m 1024 -enable-kvm\n", b.RootfsImage)
 	
 	return nil
@@ -98,7 +98,7 @@ func (b *QemuBuilder) Build() error {
 func (b *QemuBuilder) checkEnvironment() error {
 	// 检查是否为 root
 	if !utils.CheckRoot() {
-		return fmt.Errorf("请使用 sudo 或 root 权限运行")
+		return fmt.Errorf("please run with sudo or root privileges")
 	}
 	
 	// 检查必要的工具
@@ -109,7 +109,7 @@ func (b *QemuBuilder) checkEnvironment() error {
 	
 	// 检查 bootfs 目录
 	if !utils.DirExists(b.BootfsPath) {
-		return fmt.Errorf("bootfs 目录不存在: %s", b.BootfsPath)
+		return fmt.Errorf("bootfs directory does not exist: %s", b.BootfsPath)
 	}
 	
 	return nil
@@ -131,16 +131,16 @@ func (b *QemuBuilder) inferArch() string {
 func (b *QemuBuilder) createImage() error {
 	// 检查镜像是否已存在
 	if utils.FileExists(b.RootfsImage) {
-		fmt.Printf("镜像文件 %s 已存在\n", b.RootfsImage)
-		if !utils.Confirm("是否删除并重新创建？") {
-			return fmt.Errorf("用户取消操作")
+		fmt.Printf("Image file %s already exists\n", b.RootfsImage)
+		if !utils.Confirm("Delete and recreate?") {
+			return fmt.Errorf("operation cancelled by user")
 		}
 		if err := os.Remove(b.RootfsImage); err != nil {
-			return fmt.Errorf("删除镜像失败: %v", err)
+			return fmt.Errorf("failed to delete image: %v", err)
 		}
 	}
 	
-	fmt.Printf("\n创建镜像文件: %s (大小: %s)\n", b.RootfsImage, b.ImageSize)
+	fmt.Printf("\nCreating image file: %s (size: %s)\n", b.RootfsImage, b.ImageSize)
 	
 	args := []string{
 		"create",
@@ -150,7 +150,7 @@ func (b *QemuBuilder) createImage() error {
 	}
 	
 	if err := utils.RunCommand("qemu-img", args...); err != nil {
-		return fmt.Errorf("创建镜像失败: %v", err)
+		return fmt.Errorf("failed to create image: %v", err)
 	}
 	
 	return nil
@@ -158,24 +158,24 @@ func (b *QemuBuilder) createImage() error {
 
 // formatImage 格式化镜像
 func (b *QemuBuilder) formatImage() error {
-	fmt.Println("格式化镜像为 ext3...")
+	fmt.Println("Formatting image as ext3...")
 	
 	// 创建 loop 设备
 	output, err := utils.RunCommandOutput("losetup", "-f")
 	if err != nil {
-		return fmt.Errorf("获取空闲 loop 设备失败: %v", err)
+		return fmt.Errorf("failed to get free loop device: %v", err)
 	}
 	loopDevice := strings.TrimSpace(output)
 	
 	// 关联镜像到 loop 设备
 	if err := utils.RunCommand("losetup", loopDevice, b.RootfsImage); err != nil {
-		return fmt.Errorf("关联 loop 设备失败: %v", err)
+		return fmt.Errorf("failed to associate loop device: %v", err)
 	}
 	defer utils.RunCommand("losetup", "-d", loopDevice)
 	
 	// 格式化为 ext3
 	if err := utils.RunCommand("mkfs.ext3", "-F", loopDevice); err != nil {
-		return fmt.Errorf("格式化失败: %v", err)
+		return fmt.Errorf("formatting failed: %v", err)
 	}
 	
 	return nil
@@ -183,7 +183,7 @@ func (b *QemuBuilder) formatImage() error {
 
 // mountImage 挂载镜像
 func (b *QemuBuilder) mountImage() (string, error) {
-	fmt.Println("挂载镜像...")
+	fmt.Println("Mounting image...")
 	
 	// 创建临时挂载点
 	mountPoint := fmt.Sprintf("/tmp/qemu-mount-%d", os.Getpid())
@@ -194,7 +194,7 @@ func (b *QemuBuilder) mountImage() (string, error) {
 	// 挂载镜像
 	if err := utils.RunCommand("mount", "-o", "loop", b.RootfsImage, mountPoint); err != nil {
 		os.RemoveAll(mountPoint)
-		return "", fmt.Errorf("挂载镜像失败: %v", err)
+		return "", fmt.Errorf("failed to mount image: %v", err)
 	}
 	
 	return mountPoint, nil
@@ -202,14 +202,14 @@ func (b *QemuBuilder) mountImage() (string, error) {
 
 // unmountImage 卸载镜像
 func (b *QemuBuilder) unmountImage(mountPoint string) {
-	fmt.Println("卸载镜像...")
+	fmt.Println("Unmounting image...")
 	utils.RunCommand("umount", mountPoint)
 	os.RemoveAll(mountPoint)
 }
 
 // copyRootfs 复制根文件系统
 func (b *QemuBuilder) copyRootfs(mountPoint string) error {
-	fmt.Printf("复制根文件系统到镜像...\n")
+	fmt.Printf("Copying root filesystem to image...\n")
 	
 	// 使用 rsync 或 cp 复制文件
 	if utils.CheckCommand("rsync") {
@@ -223,7 +223,7 @@ func (b *QemuBuilder) copyRootfs(mountPoint string) error {
 			mountPoint + "/",
 		}
 		if err := utils.RunCommand("rsync", args...); err != nil {
-			return fmt.Errorf("复制文件失败: %v", err)
+			return fmt.Errorf("failed to copy files: %v", err)
 		}
 	} else {
 		args := []string{
@@ -232,7 +232,7 @@ func (b *QemuBuilder) copyRootfs(mountPoint string) error {
 			mountPoint + "/",
 		}
 		if err := utils.RunCommand("cp", args...); err != nil {
-			return fmt.Errorf("复制文件失败: %v", err)
+			return fmt.Errorf("failed to copy files: %v", err)
 		}
 	}
 	
@@ -255,14 +255,14 @@ func (b *QemuBuilder) copyRootfs(mountPoint string) error {
 func (b *QemuBuilder) installBootloader(mountPoint string) {
 	// 这里可以安装 GRUB 或其他 bootloader
 	// 目前跳过，用户可以手动安装或使用 -kernel 参数启动
-	fmt.Println("跳过 bootloader 安装，使用 -kernel 参数启动 QEMU")
+	fmt.Println("Skipping bootloader installation, use -kernel parameter to start QEMU")
 }
 
 // ParseSize 解析大小字符串（如 "2G", "512M"）为字节数
 func ParseSize(size string) (int64, error) {
 	size = strings.ToUpper(strings.TrimSpace(size))
 	if size == "" {
-		return 0, fmt.Errorf("大小不能为空")
+		return 0, fmt.Errorf("size cannot be empty")
 	}
 	
 	// 提取数字和单位
@@ -284,7 +284,7 @@ func ParseSize(size string) (int64, error) {
 	
 	num, err := strconv.ParseFloat(numStr, 64)
 	if err != nil {
-		return 0, fmt.Errorf("无效的大小: %s", size)
+		return 0, fmt.Errorf("invalid size: %s", size)
 	}
 	
 	// 转换为字节
@@ -301,7 +301,7 @@ func ParseSize(size string) (int64, error) {
 	case "", "B":
 		multiplier = 1
 	default:
-		return 0, fmt.Errorf("未知的单位: %s", unit)
+		return 0, fmt.Errorf("unknown unit: %s", unit)
 	}
 	
 	return int64(num * multiplier), nil
