@@ -11,13 +11,13 @@ import (
 
 // Config 配置文件结构
 type Config struct {
-	Distribution   string            `ini:"distribution"`
-	Version        string            `ini:"version"`
-	ArchSupported  []string          `ini:"-"`
-	ArchCurrent    string            `ini:"arch_current"`
-	Mirror         string            `ini:"mirror"`
-	Packages       map[string]string `ini:"-"`
-	
+	Distribution  string            `ini:"distribution"`
+	Version       string            `ini:"version"`
+	ArchSupported []string          `ini:"-"`
+	ArchCurrent   string            `ini:"arch_current"`
+	Mirror        string            `ini:"mirror"`
+	Packages      map[string]string `ini:"-"`
+
 	// 内部字段
 	sectionName      string
 	ArchSupportedRaw string `ini:"arch_supported"`
@@ -95,7 +95,7 @@ func LoadConfig(configPath string) (*Config, error) {
 // SaveToBootfs 将配置保存到 bootfs 的 /etc/bootstrap.conf
 func (c *Config) SaveToBootfs(bootfsPath string) error {
 	configPath := filepath.Join(bootfsPath, "etc", "bootstrap.conf")
-	
+
 	// 确保目录存在
 	if err := os.MkdirAll(filepath.Dir(configPath), 0755); err != nil {
 		return fmt.Errorf("failed to create directory: %v", err)

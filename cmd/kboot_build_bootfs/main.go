@@ -6,7 +6,6 @@ import (
 
 	"github.com/rivsidn/kdev_bootstrap/pkg/builder"
 	"github.com/rivsidn/kdev_bootstrap/pkg/config"
-	"github.com/rivsidn/kdev_bootstrap/pkg/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -51,18 +50,12 @@ func runBuild(cmd *cobra.Command, args []string) error {
 	if arch == "" {
 		if cfg.ArchCurrent != "" {
 			arch = cfg.ArchCurrent
-		} else {
-			// 获取默认架构
-			arch = utils.GetDefaultArch()
-			// 检查是否支持
-			if !cfg.ValidateArch(arch) {
-				if len(cfg.ArchSupported) > 0 {
-					arch = cfg.ArchSupported[0]
-				} else {
-					return fmt.Errorf("cannot determine architecture")
-				}
-			}
 		}
+	}
+
+	// 验证最终确定的架构是否支持
+	if !cfg.ValidateArch(arch) {
+		return fmt.Errorf("architecture %s is not supported, supported architectures: %v", arch, cfg.ArchSupported)
 	}
 
 	fmt.Printf("   Target architecture: %s\n", arch)

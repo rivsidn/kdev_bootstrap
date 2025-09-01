@@ -14,13 +14,13 @@ func RunCommand(name string, args ...string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
-	
+
 	fmt.Printf("Executing command: %s %s\n", name, strings.Join(args, " "))
-	
+
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("command execution failed %s: %v", name, err)
 	}
-	
+
 	return nil
 }
 
@@ -79,7 +79,7 @@ func Confirm(prompt string) bool {
 		return false
 	}
 	response = strings.ToLower(strings.TrimSpace(response))
-	return response == "y" || response == "yes"
+	return response == "y" || response == "Y" || response == "yes"
 }
 
 // CheckDependencies 检查系统依赖
@@ -90,20 +90,11 @@ func CheckDependencies(deps []string) error {
 			missing = append(missing, dep)
 		}
 	}
-	
+
 	if len(missing) > 0 {
-		return fmt.Errorf("missing dependencies: %s\nplease run: sudo apt-get install %s", 
+		return fmt.Errorf("missing dependencies: %s\nplease run: sudo apt-get install %s",
 			strings.Join(missing, ", "), strings.Join(missing, " "))
 	}
-	
-	return nil
-}
 
-// GetDefaultArch 获取默认架构
-func GetDefaultArch() string {
-	output, err := RunCommandOutput("dpkg", "--print-architecture")
-	if err != nil {
-		return "amd64"
-	}
-	return strings.TrimSpace(output)
+	return nil
 }
