@@ -86,7 +86,7 @@ func (b *QemuBuilder) Build() error {
 	// 7. 安装 bootloader（可选）
 	b.installBootloader(mountPoint)
 	
-	fmt.Printf("\n✅ QEMU 镜像构建成功: %s\n", b.RootfsImage)
+	fmt.Printf("\nQEMU 镜像构建成功: %s\n", b.RootfsImage)
 	fmt.Printf("   大小: %s\n", b.ImageSize)
 	fmt.Printf("   使用方法:\n")
 	fmt.Printf("   qemu-system-x86_64 -hda %s -m 1024 -enable-kvm\n", b.RootfsImage)
@@ -140,7 +140,7 @@ func (b *QemuBuilder) createImage() error {
 		}
 	}
 	
-	fmt.Printf("\n💾 创建镜像文件: %s (大小: %s)\n", b.RootfsImage, b.ImageSize)
+	fmt.Printf("\n创建镜像文件: %s (大小: %s)\n", b.RootfsImage, b.ImageSize)
 	
 	args := []string{
 		"create",
@@ -158,7 +158,7 @@ func (b *QemuBuilder) createImage() error {
 
 // formatImage 格式化镜像
 func (b *QemuBuilder) formatImage() error {
-	fmt.Println("🔧 格式化镜像为 ext3...")
+	fmt.Println("格式化镜像为 ext3...")
 	
 	// 创建 loop 设备
 	output, err := utils.RunCommandOutput("losetup", "-f")
@@ -183,7 +183,7 @@ func (b *QemuBuilder) formatImage() error {
 
 // mountImage 挂载镜像
 func (b *QemuBuilder) mountImage() (string, error) {
-	fmt.Println("📁 挂载镜像...")
+	fmt.Println("挂载镜像...")
 	
 	// 创建临时挂载点
 	mountPoint := fmt.Sprintf("/tmp/qemu-mount-%d", os.Getpid())
@@ -202,14 +202,14 @@ func (b *QemuBuilder) mountImage() (string, error) {
 
 // unmountImage 卸载镜像
 func (b *QemuBuilder) unmountImage(mountPoint string) {
-	fmt.Println("📁 卸载镜像...")
+	fmt.Println("卸载镜像...")
 	utils.RunCommand("umount", mountPoint)
 	os.RemoveAll(mountPoint)
 }
 
 // copyRootfs 复制根文件系统
 func (b *QemuBuilder) copyRootfs(mountPoint string) error {
-	fmt.Printf("📋 复制根文件系统到镜像...\n")
+	fmt.Printf("复制根文件系统到镜像...\n")
 	
 	// 使用 rsync 或 cp 复制文件
 	if utils.CheckCommand("rsync") {
@@ -255,7 +255,7 @@ func (b *QemuBuilder) copyRootfs(mountPoint string) error {
 func (b *QemuBuilder) installBootloader(mountPoint string) {
 	// 这里可以安装 GRUB 或其他 bootloader
 	// 目前跳过，用户可以手动安装或使用 -kernel 参数启动
-	fmt.Println("ℹ️  跳过 bootloader 安装，使用 -kernel 参数启动 QEMU")
+	fmt.Println("跳过 bootloader 安装，使用 -kernel 参数启动 QEMU")
 }
 
 // ParseSize 解析大小字符串（如 "2G", "512M"）为字节数

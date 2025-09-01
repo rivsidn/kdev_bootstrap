@@ -74,7 +74,7 @@ func (b *BootfsBuilder) Build() error {
 		return err
 	}
 
-	fmt.Printf("\n✅ Bootfs 构建成功: %s\n", b.BootfsPath)
+	fmt.Printf("\nBootfs 构建成功: %s\n", b.BootfsPath)
 	return nil
 }
 
@@ -116,7 +116,7 @@ func (b *BootfsBuilder) setBootfsPath() {
 
 // runDebootstrap 执行 debootstrap
 func (b *BootfsBuilder) runDebootstrap() error {
-	fmt.Println("\n🔧 执行 debootstrap...")
+	fmt.Println("\n执行 debootstrap...")
 	
 	suite := b.Config.GetSuite()
 	mirror := b.Config.Mirror
@@ -147,11 +147,11 @@ func (b *BootfsBuilder) installPackages() error {
 		return nil
 	}
 	
-	fmt.Printf("\n📦 安装额外的包: %s\n", strings.Join(packages, ", "))
+	fmt.Printf("\n安装额外的包: %s\n", strings.Join(packages, ", "))
 	
 	// 更新包列表
 	if err := b.chrootRun("apt-get", "update"); err != nil {
-		fmt.Printf("⚠️  更新包列表失败，继续安装...\n")
+		fmt.Printf("更新包列表失败，继续安装...\n")
 	}
 	
 	// 安装包
@@ -159,7 +159,7 @@ func (b *BootfsBuilder) installPackages() error {
 	args = append(args, packages...)
 	
 	if err := b.chrootRun("apt-get", args...); err != nil {
-		fmt.Printf("⚠️  部分包安装失败: %v\n", err)
+		fmt.Printf("部分包安装失败: %v\n", err)
 	}
 	
 	// 清理
@@ -170,13 +170,13 @@ func (b *BootfsBuilder) installPackages() error {
 
 // configureSystem 配置系统
 func (b *BootfsBuilder) configureSystem() error {
-	fmt.Println("\n⚙️  配置系统...")
+	fmt.Println("\n配置系统...")
 	
 	// 设置 hostname
 	hostnamePath := filepath.Join(b.BootfsPath, "etc", "hostname")
 	hostname := fmt.Sprintf("%s-%s", b.Config.Distribution, b.Config.Version)
 	if err := os.WriteFile(hostnamePath, []byte(hostname+"\n"), 0644); err != nil {
-		fmt.Printf("⚠️  设置 hostname 失败: %v\n", err)
+		fmt.Printf("设置 hostname 失败: %v\n", err)
 	}
 	
 	// 设置 hosts
@@ -190,7 +190,7 @@ ff02::1		ip6-allnodes
 ff02::2		ip6-allrouters
 `, hostname)
 	if err := os.WriteFile(hostsPath, []byte(hostsContent), 0644); err != nil {
-		fmt.Printf("⚠️  设置 hosts 失败: %v\n", err)
+		fmt.Printf("设置 hosts 失败: %v\n", err)
 	}
 	
 	// 设置 root 密码为空（用于开发环境）
@@ -202,7 +202,7 @@ ff02::2		ip6-allrouters
 nameserver 8.8.4.4
 `
 	if err := os.WriteFile(resolvPath, []byte(resolvContent), 0644); err != nil {
-		fmt.Printf("⚠️  设置 DNS 失败: %v\n", err)
+		fmt.Printf("设置 DNS 失败: %v\n", err)
 	}
 	
 	// 创建必要的目录

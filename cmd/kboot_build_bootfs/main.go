@@ -26,7 +26,9 @@ var rootCmd = &cobra.Command{
 	RunE: runBuild,
 }
 
-func init() { rootCmd.Flags().StringVarP(&configFile, "file", "f", "", "配置文件路径（必需）")
+func init() {
+	// 设置命令行参数
+	rootCmd.Flags().StringVarP(&configFile, "file", "f", "", "配置文件路径（必需）")
 	rootCmd.Flags().StringVarP(&arch, "arch", "a", "", "目标架构（如：i386, amd64）")
 	rootCmd.Flags().StringVarP(&outputDir, "output", "o", "", "输出目录（默认为当前目录）")
 
@@ -40,7 +42,7 @@ func runBuild(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Printf("📋 配置信息:\n")
+	fmt.Printf("配置信息:\n")
 	fmt.Printf("   发行版: %s %s\n", cfg.Distribution, cfg.Version)
 	fmt.Printf("   支持架构: %v\n", cfg.ArchSupported)
 	fmt.Printf("   镜像源: %s\n", cfg.Mirror)
@@ -77,8 +79,9 @@ func runBuild(cmd *cobra.Command, args []string) error {
 }
 
 func main() {
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "❌ 错误: %v\n", err)
+	err := rootCmd.Execute()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "错误: %v\n", err)
 		os.Exit(1)
 	}
 }

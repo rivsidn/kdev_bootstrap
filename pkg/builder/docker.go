@@ -71,7 +71,7 @@ func (b *DockerBuilder) Build() error {
 		os.Remove(b.DockerfilePath)
 	}
 	
-	fmt.Printf("\n✅ Docker 镜像构建成功: %s\n", b.ImageName)
+	fmt.Printf("\nDocker 镜像构建成功: %s\n", b.ImageName)
 	fmt.Printf("   使用方法: docker run -it --rm %s /bin/bash\n", b.ImageName)
 	
 	return nil
@@ -159,7 +159,7 @@ CMD ["/bin/bash"]
 
 // buildImage 构建 Docker 镜像
 func (b *DockerBuilder) buildImage() error {
-	fmt.Printf("\n🐳 构建 Docker 镜像: %s\n", b.ImageName)
+	fmt.Printf("\n构建 Docker 镜像: %s\n", b.ImageName)
 	
 	// 构建上下文直接是 bootfs 目录，这样 ADD . / 会添加 bootfs 的内容
 	buildContext := b.BootfsPath

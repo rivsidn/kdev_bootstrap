@@ -38,7 +38,7 @@ func runBuild(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	
-	fmt.Printf("📋 配置信息:\n")
+	fmt.Printf("配置信息:\n")
 	fmt.Printf("   发行版: %s %s\n", builder.Config.Distribution, builder.Config.Version)
 	fmt.Printf("   架构: %s\n", builder.Config.ArchCurrent)
 	fmt.Printf("   Bootfs: %s\n", bootfsPath)
@@ -53,7 +53,7 @@ func runBuild(cmd *cobra.Command, args []string) error {
 
 func main() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "❌ 错误: %v\n", err)
+		fmt.Fprintf(os.Stderr, "错误: %v\n", err)
 		os.Exit(1)
 	}
 }
