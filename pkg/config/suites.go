@@ -9,7 +9,7 @@ var UbuntuSuiteMap = map[string]string{
 	"24.04": "noble",
 }
 
-func (c *Config) GetSuite() string,err {
+func (c *Config) GetSuite() string {
 	if suite, ok := UbuntuSuiteMap[c.Version]; ok {
 		return suite
 	} else {
