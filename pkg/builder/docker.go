@@ -106,6 +106,9 @@ func (b *DockerBuilder) createDockerfile() error {
 	if arch == "" {
 		return fmt.Errorf("Can not find the valid arch");
 	}
+	if arch == "amd64" {
+		arch = "x86_64"
+	}
 
 	dockerfileContent := `FROM scratch
 
