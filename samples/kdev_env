@@ -1,0 +1,27 @@
+#!/bin/bash
+
+export KDEV_KERNEL=arch/i386/boot/bzImage
+export KDEV_DOCKER_IMAGE=ubuntu-5.10-i386
+export KDEV_QEMU_IMAGE=/opt/ubuntu-rootfs/ubuntu-5.10/rootfs-i386.img
+
+alias kdev_build='docker run -it --rm -v $PWD:/workspace -w /workspace --hostname kernel-dev $KDEV_DOCKER_IMAGE bash'
+
+kdev_run() {
+	local mode="$1"
+	case "$mode" in
+		terminal)
+			qemu-system-i386 -kernel $KDEV_KERNEL -hda $KDEV_QEMU_IMAGE \
+				-append "root=/dev/hda rw init=/bin/bash console=ttyS0" -nographic -m 256M 
+			;;
+		debug)
+			qemu-system-i386 -kernel $KDEV_KERNEL -hda $KDEV_QEMU_IMAGE \
+				-append "root=/dev/hda rw init=/bin/bash console=ttyS0" \
+				-nographic -gdb tcp::1234 -S -m 256M 
+			;;
+		*)
+			qemu-system-i386 -kernel $KDEV_KERNEL -hda $KDEV_QEMU_IMAGE \
+				-append "root=/dev/hda rw init=/sbin/init console=tty0" -m 256M 
+			;;
+	esac
+}
+
