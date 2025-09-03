@@ -28,6 +28,78 @@ kdev_init_bridge() {
 	fi
 }
 
+# 传输文件到 rootfs.img
+kdev_push() {
+	local src="$1"
+	local dst="${2:-/root/}"
+
+	# 检查参数
+	if [ -z "$src" ]; then
+		echo "Usage: kdev_push <source_file/dir> [destination_path]"
+		echo "Example:"
+		echo "  kdev_push module.ko          # 传输到 /root/"
+		echo "  kdev_push *.ko /lib/modules/ # 传输多个文件"
+		echo "  kdev_push mydir/ /opt/       # 传输目录"
+		return 1
+	fi
+
+	# 检查源文件是否存在
+	if [ ! -e "$src" ]; then
+		echo "Error: Source '$src' not found"
+		return 1
+	fi
+
+	# 检查镜像文件
+	if [ ! -f "$KDEV_QEMU_IMAGE" ]; then
+		echo "Error: QEMU image not found: $KDEV_QEMU_IMAGE"
+		return 1
+	fi
+
+	# 创建临时挂载点
+	local mount_point="/tmp/kdev-mount-$$"
+	echo "Mounting $KDEV_QEMU_IMAGE..."
+
+	# 挂载镜像
+	sudo mkdir -p "$mount_point"
+	if ! sudo mount -o loop "$KDEV_QEMU_IMAGE" "$mount_point"; then
+		echo "Error: Failed to mount image"
+		sudo rmdir "$mount_point"
+		return 1
+	fi
+
+	# 检查目标目录是否存在
+	if [ ! -d "$mount_point$dst" ]; then
+		echo "Error: Target directory '$dst' does not exist in image"
+		sudo umount "$mount_point"
+		sudo rmdir "$mount_point"
+		return 1
+	fi
+
+	# 复制文件
+	echo "Copying $src to $dst..."
+	if [ -d "$src" ]; then
+		# 复制目录
+		sudo cp -r "$src" "$mount_point$dst"
+	else
+		# 复制文件
+		sudo cp "$src" "$mount_point$dst"
+	fi
+
+	local result=$?
+
+	# 卸载镜像
+	echo "Unmounting..."
+	sudo umount "$mount_point"
+	sudo rmdir "$mount_point"
+
+	if [ $result -eq 0 ]; then
+		echo "✓ File(s) transferred successfully"
+	else
+		echo "✗ Transfer failed"
+		return 1
+	fi
+}
+
 kdev_run() {
 	local mode="$1"
 	case "$mode" in
