@@ -64,6 +64,11 @@ func (b *BootfsBuilder) Build() error {
 		return err
 	}
 
+	// 7. 配置网络
+	if err := b.configureNetwork(); err != nil {
+		return fmt.Errorf("failed to configure network: %v", err)
+	}
+
 	fmt.Printf("\nBootfs build successful: %s\n", b.BootfsPath)
 	return nil
 }
@@ -129,6 +134,46 @@ func (b *BootfsBuilder) runDebootstrap() error {
 		return fmt.Errorf("debootstrap failed: %v", err)
 	}
 
+	return nil
+}
+
+// configureNetwork 配置网络
+func (b *BootfsBuilder) configureNetwork() error {
+	fmt.Println("Configuring network...")
+
+	// 创建 /etc/network 目录
+	networkDir := filepath.Join(b.BootfsPath, "etc", "network")
+	if err := os.MkdirAll(networkDir, 0755); err != nil {
+		return fmt.Errorf("failed to create network directory: %v", err)
+	}
+
+	// 创建 /etc/network/interfaces 文件
+	interfacesPath := filepath.Join(networkDir, "interfaces")
+	interfacesContent := `# interfaces(5) file used by ifup(8) and ifdown(8)
+auto lo
+iface lo inet loopback
+
+# QEMU 网络配置 - 自动获取 IP
+auto eth0
+iface eth0 inet dhcp
+`
+
+	if err := os.WriteFile(interfacesPath, []byte(interfacesContent), 0644); err != nil {
+		return fmt.Errorf("failed to create interfaces file: %v", err)
+	}
+
+	// 创建 /etc/resolv.conf 作为备份
+	resolvPath := filepath.Join(b.BootfsPath, "etc", "resolv.conf")
+	resolvContent := `# DNS configuration for QEMU
+nameserver 10.0.2.3
+nameserver 114.114.114.114
+nameserver 8.8.8.8
+`
+	if err := os.WriteFile(resolvPath, []byte(resolvContent), 0644); err != nil {
+		return fmt.Errorf("failed to create resolv.conf: %v", err)
+	}
+
+	fmt.Println("Network configuration completed")
 	return nil
 }
 

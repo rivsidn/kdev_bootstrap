@@ -1,26 +1,68 @@
 #!/bin/bash
 
-export KDEV_KERNEL=arch/i386/boot/bzImage
-export KDEV_DOCKER_IMAGE=ubuntu-5.10-i386
-export KDEV_QEMU_IMAGE=/opt/ubuntu-rootfs/ubuntu-5.10/rootfs-i386.img
+export KDEV_KERNEL=arch/x86_64/boot/bzImage
+export KDEV_DOCKER_IMAGE=ubuntu-16.04-amd64
+export KDEV_QEMU_IMAGE=/opt/ubuntu-rootfs/ubuntu-16.04-amd64-rootfs.img
 
 alias kdev_build='docker run -it --rm -v $PWD:/workspace -w /workspace --hostname kernel-dev $KDEV_DOCKER_IMAGE bash'
+
+# 初始化桥接网络
+kdev_init_bridge() {
+	local bridge_name="${1:-br0}"
+	local bridge_ip="${2:-172.20.0.1/24}"
+
+	# 检查桥接是否存在
+	if ! ip link show "$bridge_name" &>/dev/null; then
+		echo "Creating bridge $bridge_name..."
+		sudo ip link add "$bridge_name" type bridge
+		sudo ip link set "$bridge_name" up
+		sudo ip addr add "$bridge_ip" dev "$bridge_name"
+
+		# 配置 NAT 让虚拟机能访问外网
+		sudo iptables -t nat -A POSTROUTING -s "${bridge_ip%/*}" -j MASQUERADE
+		sudo sysctl -w net.ipv4.ip_forward=1
+
+		echo "Bridge $bridge_name created with IP $bridge_ip"
+	else
+		echo "Bridge $bridge_name already exists"
+	fi
+}
 
 kdev_run() {
 	local mode="$1"
 	case "$mode" in
 		terminal)
-			qemu-system-i386 -kernel $KDEV_KERNEL -hda $KDEV_QEMU_IMAGE \
-				-append "root=/dev/hda rw init=/bin/bash console=ttyS0" -nographic -m 256M 
+			qemu-system-x86_64 -kernel $KDEV_KERNEL -hda $KDEV_QEMU_IMAGE \
+				-append "root=/dev/sda rw init=/bin/bash console=ttyS0" \
+				-nographic -m 256M
 			;;
 		debug)
-			qemu-system-i386 -kernel $KDEV_KERNEL -hda $KDEV_QEMU_IMAGE \
-				-append "root=/dev/hda rw init=/bin/bash console=ttyS0" \
-				-nographic -gdb tcp::1234 -S -m 256M 
+			qemu-system-x86_64 -kernel $KDEV_KERNEL -hda $KDEV_QEMU_IMAGE \
+				-append "root=/dev/sda rw init=/bin/bash console=ttyS0" \
+				-nographic -gdb tcp::1234 -S -m 256M
+			;;
+		internet)
+			qemu-system-x86_64 -kernel $KDEV_KERNEL -hda $KDEV_QEMU_IMAGE \
+				-netdev user,id=net0 -device e1000,netdev=net0 \
+				-append "root=/dev/sda rw init=/sbin/init console=tty0" -m 256M
+			;;
+		bridge)
+			# 桥接模式：最接近 Docker 的网络体验
+			# 需要先创建桥接：
+			# sudo ip link add br0 type bridge
+			# sudo ip link set br0 up
+			# sudo ip addr add 172.20.0.1/24 dev br0
+			qemu-system-x86_64 -kernel $KDEV_KERNEL -hda $KDEV_QEMU_IMAGE \
+				-netdev bridge,id=net0,br=br0 \
+				-device e1000,netdev=net0 \
+				-append "root=/dev/sda rw init=/sbin/init console=tty0" -m 512M
 			;;
 		*)
-			qemu-system-i386 -kernel $KDEV_KERNEL -hda $KDEV_QEMU_IMAGE \
-				-append "root=/dev/hda rw init=/sbin/init console=tty0" -m 256M 
+			echo "Usage: kdev_run {terminal|debug|internet|bridge}"
+			echo "  terminal - 基础终端模式"
+			echo "  debug    - GDB 调试模式"
+			echo "  internet - 基础网络模式"
+			echo "  bridge   - 桥接网络模式"
 			;;
 	esac
 }
