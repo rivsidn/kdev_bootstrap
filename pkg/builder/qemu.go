@@ -188,37 +188,28 @@ func (b *QemuBuilder) copyRootfs(mountPoint string) error {
 	fmt.Printf("Copying root filesystem to image...\n")
 
 	// 使用 rsync 或 cp 复制文件
-//	if utils.CheckCommand("rsync") {
-//		args := []string{
-//			"-av",
-//			"--exclude=/proc/*",
-//			"--exclude=/sys/*",
-//			"--exclude=/dev/*",
-//			"--exclude=/tmp/*",
-//			b.BootfsPath + "/",
-//			mountPoint + "/",
-//		}
-//		if err := utils.RunCommand("rsync", args...); err != nil {
-//			return fmt.Errorf("failed to copy files: %v", err)
-//		}
-//	} else {
-//		args := []string{
-//			"-a",
-//			b.BootfsPath + "/.",
-//			mountPoint + "/",
-//		}
-//		if err := utils.RunCommand("cp", args...); err != nil {
-//			return fmt.Errorf("failed to copy files: %v", err)
-//		}
-//	}
-
-	args := []string{
-		"-a",
-		b.BootfsPath + "/.",
-		mountPoint + "/",
-	}
-	if err := utils.RunCommand("cp", args...); err != nil {
-		return fmt.Errorf("failed to copy files: %v", err)
+	if utils.CheckCommand("rsync") {
+		args := []string{
+			"-av",
+			"--exclude=/proc/*",
+			"--exclude=/sys/*",
+			"--exclude=/dev/*",
+			"--exclude=/tmp/*",
+			b.BootfsPath + "/",
+			mountPoint + "/",
+		}
+		if err := utils.RunCommand("rsync", args...); err != nil {
+			return fmt.Errorf("failed to copy files: %v", err)
+		}
+	} else {
+		args := []string{
+			"-a",
+			b.BootfsPath + "/.",
+			mountPoint + "/",
+		}
+		if err := utils.RunCommand("cp", args...); err != nil {
+			return fmt.Errorf("failed to copy files: %v", err)
+		}
 	}
 
 	// 创建必要的目录

@@ -69,7 +69,14 @@ func (b *BootfsBuilder) Build() error {
 		return fmt.Errorf("failed to configure network: %v", err)
 	}
 
+	// 8. 配置 root 无密码登录
+	if err := b.configureRootNoPassword(); err != nil {
+		return fmt.Errorf("failed to configure root user: %v", err)
+	}
+
 	fmt.Printf("\nBootfs build successful: %s\n", b.BootfsPath)
+	fmt.Printf("Root login: no password required (just type 'root')\n")
+	fmt.Printf("Network: DHCP enabled (will get IP 10.0.2.15 in QEMU)\n")
 	return nil
 }
 
@@ -174,6 +181,41 @@ nameserver 8.8.8.8
 	}
 
 	fmt.Println("Network configuration completed")
+	return nil
+}
+
+// configureRootNoPassword 配置 root 无密码登录
+func (b *BootfsBuilder) configureRootNoPassword() error {
+	fmt.Println("Configuring root user (no password)...")
+
+	// 修改 /etc/shadow 文件，清空 root 密码字段
+	shadowPath := filepath.Join(b.BootfsPath, "etc", "shadow")
+
+	content, err := os.ReadFile(shadowPath)
+	if err != nil {
+		return fmt.Errorf("failed to read shadow file: %v", err)
+	}
+
+	// 修改 root 行的密码字段为空
+	lines := strings.Split(string(content), "\n")
+	for i, line := range lines {
+		if strings.HasPrefix(line, "root:") {
+			parts := strings.Split(line, ":")
+			if len(parts) >= 2 {
+				parts[1] = ""  // 清空密码字段，允许无密码登录
+				lines[i] = strings.Join(parts, ":")
+				break
+			}
+		}
+	}
+
+	// 写回文件
+	newContent := strings.Join(lines, "\n")
+	if err := os.WriteFile(shadowPath, []byte(newContent), 0640); err != nil {
+		return fmt.Errorf("failed to write shadow file: %v", err)
+	}
+
+	fmt.Println("Root user configured for passwordless login")
 	return nil
 }
 
