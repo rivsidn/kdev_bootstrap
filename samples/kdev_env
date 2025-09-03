@@ -6,28 +6,6 @@ export KDEV_QEMU_IMAGE=/opt/ubuntu-rootfs/ubuntu-16.04-amd64-rootfs.img
 
 alias kdev_build='docker run -it --rm -v $PWD:/workspace -w /workspace --hostname kernel-dev $KDEV_DOCKER_IMAGE bash'
 
-# 初始化桥接网络
-kdev_init_bridge() {
-	local bridge_name="${1:-br0}"
-	local bridge_ip="${2:-172.20.0.1/24}"
-
-	# 检查桥接是否存在
-	if ! ip link show "$bridge_name" &>/dev/null; then
-		echo "Creating bridge $bridge_name..."
-		sudo ip link add "$bridge_name" type bridge
-		sudo ip link set "$bridge_name" up
-		sudo ip addr add "$bridge_ip" dev "$bridge_name"
-
-		# 配置 NAT 让虚拟机能访问外网
-		sudo iptables -t nat -A POSTROUTING -s "${bridge_ip%/*}" -j MASQUERADE
-		sudo sysctl -w net.ipv4.ip_forward=1
-
-		echo "Bridge $bridge_name created with IP $bridge_ip"
-	else
-		echo "Bridge $bridge_name already exists"
-	fi
-}
-
 # 传输文件到 rootfs.img
 kdev_push() {
 	local src="$1"
@@ -88,14 +66,13 @@ kdev_push() {
 	local result=$?
 
 	# 卸载镜像
-	echo "Unmounting..."
 	sudo umount "$mount_point"
 	sudo rmdir "$mount_point"
 
 	if [ $result -eq 0 ]; then
-		echo "✓ File(s) transferred successfully"
+		echo "File(s) transferred successfully"
 	else
-		echo "✗ Transfer failed"
+		echo "Transfer failed"
 		return 1
 	fi
 }
@@ -119,13 +96,25 @@ kdev_run() {
 				-append "root=/dev/sda rw init=/sbin/init console=tty0" -m 256M
 			;;
 		bridge)
-			# 桥接模式：最接近 Docker 的网络体验
-			# 需要先创建桥接：
-			# sudo ip link add br0 type bridge
-			# sudo ip link set br0 up
-			# sudo ip addr add 172.20.0.1/24 dev br0
-			qemu-system-x86_64 -kernel $KDEV_KERNEL -hda $KDEV_QEMU_IMAGE \
-				-netdev bridge,id=net0,br=br0 \
+			# 桥接模式（需要 root 权限）
+			echo "Bridge mode requires root permission and bridge setup"
+			echo "Setting up bridge br0..."
+
+			# 检查并创建桥接
+			if ! ip link show br0 &>/dev/null; then
+				sudo ip link add br0 type bridge
+				sudo ip link set br0 up
+				sudo ip addr add 172.20.0.1/24 dev br0
+				sudo iptables -t nat -A POSTROUTING -s 172.20.0.0/24 ! -o tap0 -j MASQUERADE
+				sudo sysctl -w net.ipv4.ip_forward=1
+				echo "Bridge br0 created with IP 172.20.0.1/24"
+			else
+				echo "Using existing bridge br0"
+			fi
+
+			# 使用 sudo 和 TAP 设备（更可靠）
+			sudo qemu-system-x86_64 -kernel $KDEV_KERNEL -hda $KDEV_QEMU_IMAGE \
+				-netdev tap,id=net0,script=/home/yuchao/github/kdev_bootstrap/samples/qemu-ifup,downscript=/home/yuchao/github/kdev_bootstrap/samples/qemu-ifdown \
 				-device e1000,netdev=net0 \
 				-append "root=/dev/sda rw init=/sbin/init console=tty0" -m 512M
 			;;

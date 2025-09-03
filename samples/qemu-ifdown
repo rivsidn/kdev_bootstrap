@@ -1,0 +1,4 @@
+#!/bin/sh
+
+ip link set $1 nomaster
+ip link set $1 down
