@@ -74,8 +74,14 @@ func (b *BootfsBuilder) Build() error {
 		return fmt.Errorf("failed to configure root user: %v", err)
 	}
 
+	// 9. 配置 SSH 服务
+	if err := b.configureSSH(); err != nil {
+		return fmt.Errorf("failed to configure SSH: %v", err)
+	}
+
 	fmt.Printf("\nBootfs build successful: %s\n", b.BootfsPath)
 	fmt.Printf("Root login: no password required (just type 'root')\n")
+	fmt.Printf("SSH: configured for passwordless root login\n")
 	fmt.Printf("Network: DHCP enabled (will get IP 10.0.2.15 in QEMU)\n")
 	return nil
 }
@@ -216,6 +222,88 @@ func (b *BootfsBuilder) configureRootNoPassword() error {
 	}
 
 	fmt.Println("Root user configured for passwordless login")
+	return nil
+}
+
+// configureSSH 配置 SSH 服务以允许 root 无密码登录
+func (b *BootfsBuilder) configureSSH() error {
+	fmt.Println("Configuring SSH for passwordless root login...")
+
+	sshdConfigPath := filepath.Join(b.BootfsPath, "etc", "ssh", "sshd_config")
+	
+	// 检查文件是否存在
+	if !utils.FileExists(sshdConfigPath) {
+		// 如果文件不存在，创建目录和基本配置文件
+		sshDir := filepath.Join(b.BootfsPath, "etc", "ssh")
+		if err := os.MkdirAll(sshDir, 0755); err != nil {
+			return fmt.Errorf("failed to create SSH directory: %v", err)
+		}
+		
+		// 创建基本配置文件，包含必要的配置项
+		basicConfig := `# SSH Server Configuration
+# Basic configuration with passwordless root login
+
+Port 22
+PermitRootLogin yes
+PermitEmptyPasswords yes
+PasswordAuthentication yes
+UsePAM no
+`
+		if err := os.WriteFile(sshdConfigPath, []byte(basicConfig), 0644); err != nil {
+			return fmt.Errorf("failed to create sshd_config: %v", err)
+		}
+	} else {
+		// 如果文件存在，读取并修改指定配置项
+		content, err := os.ReadFile(sshdConfigPath)
+		if err != nil {
+			return fmt.Errorf("failed to read sshd_config: %v", err)
+		}
+		
+		// 要修改的配置项
+		configItems := map[string]string{
+			"PermitRootLogin":      "yes",
+			"PermitEmptyPasswords": "yes",
+			"PasswordAuthentication": "yes",
+			"UsePAM":               "no",
+		}
+		
+		// 处理配置文件
+		lines := strings.Split(string(content), "\n")
+		modifiedItems := make(map[string]bool)
+		
+		// 修改已存在的配置项
+		for i, line := range lines {
+			trimmedLine := strings.TrimSpace(line)
+			// 跳过空行和注释
+			if trimmedLine == "" || strings.HasPrefix(trimmedLine, "#") {
+				continue
+			}
+			
+			// 检查是否是要修改的配置项
+			for key, value := range configItems {
+				if strings.HasPrefix(trimmedLine, key) {
+					lines[i] = key + " " + value
+					modifiedItems[key] = true
+					break
+				}
+			}
+		}
+		
+		// 添加未找到的配置项
+		for key, value := range configItems {
+			if !modifiedItems[key] {
+				lines = append(lines, key + " " + value)
+			}
+		}
+		
+		// 写回文件
+		newContent := strings.Join(lines, "\n")
+		if err := os.WriteFile(sshdConfigPath, []byte(newContent), 0644); err != nil {
+			return fmt.Errorf("failed to write sshd_config: %v", err)
+		}
+	}
+
+	fmt.Println("SSH configured for passwordless root login")
 	return nil
 }
 
