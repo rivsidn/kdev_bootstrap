@@ -16,11 +16,13 @@ type Config struct {
 	ArchSupported []string          `ini:"-"`
 	ArchCurrent   string            `ini:"arch_current"`
 	Mirror        string            `ini:"mirror"`
+	SetupScript   string            `ini:"setup_script"`
 	Packages      map[string]string `ini:"-"`
 
 	// 内部字段
 	sectionName      string
 	ArchSupportedRaw string `ini:"arch_supported"`
+	ConfigPath       string // 配置文件的完整路径
 }
 
 // LoadConfig 加载配置文件
@@ -48,6 +50,7 @@ func LoadConfig(configPath string) (*Config, error) {
 	config := &Config{
 		sectionName: sectionName,
 		Packages:    make(map[string]string),
+		ConfigPath:  configPath,
 	}
 
 	// 解析基本字段
@@ -155,3 +158,4 @@ func (c *Config) ValidateArch(arch string) bool {
 	}
 	return false
 }
+

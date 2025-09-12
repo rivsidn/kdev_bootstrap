@@ -64,25 +64,14 @@ func (b *BootfsBuilder) Build() error {
 		return err
 	}
 
-	// 7. 配置网络
-	if err := b.configureNetwork(); err != nil {
-		return fmt.Errorf("failed to configure network: %v", err)
-	}
-
-	// 8. 配置 root 无密码登录
-	if err := b.configureRootNoPassword(); err != nil {
-		return fmt.Errorf("failed to configure root user: %v", err)
-	}
-
-	// 9. 配置 SSH 服务
-	if err := b.configureSSH(); err != nil {
-		return fmt.Errorf("failed to configure SSH: %v", err)
+	// 7. 安装启动脚本（替代原来的配置步骤）
+	if err := b.installStartupScript(); err != nil {
+		return fmt.Errorf("failed to install startup script: %v", err)
 	}
 
 	fmt.Printf("\nBootfs build successful: %s\n", b.BootfsPath)
-	fmt.Printf("Root login: no password required (just type 'root')\n")
-	fmt.Printf("SSH: configured for passwordless root login\n")
-	fmt.Printf("Network: DHCP enabled (will get IP 10.0.2.15 in QEMU)\n")
+	fmt.Printf("Setup script installed: /root/setup.sh\n")
+	fmt.Printf("Run after boot: bash /root/setup.sh\n")
 	return nil
 }
 
@@ -150,160 +139,46 @@ func (b *BootfsBuilder) runDebootstrap() error {
 	return nil
 }
 
-// configureNetwork 配置网络
-func (b *BootfsBuilder) configureNetwork() error {
-	fmt.Println("Configuring network...")
-
-	// 创建 /etc/network 目录
-	networkDir := filepath.Join(b.BootfsPath, "etc", "network")
-	if err := os.MkdirAll(networkDir, 0755); err != nil {
-		return fmt.Errorf("failed to create network directory: %v", err)
+// installStartupScript 安装启动脚本
+func (b *BootfsBuilder) installStartupScript() error {
+	// 从配置获取脚本名
+	scriptName := b.Config.SetupScript
+	if scriptName == "" {
+		// 没有配置脚本，跳过
+		fmt.Println("No startup script configured, skipping configuration")
+		return nil
 	}
 
-	// 创建 /etc/network/interfaces 文件
-	interfacesPath := filepath.Join(networkDir, "interfaces")
-	interfacesContent := `# interfaces(5) file used by ifup(8) and ifdown(8)
-auto lo
-iface lo inet loopback
+	fmt.Printf("Installing startup script: %s\n", scriptName)
 
-# QEMU 网络配置 - 自动获取 IP
-auto eth0
-iface eth0 inet dhcp
-`
+	// 脚本源路径（相对于配置文件）
+	configDir := filepath.Dir(b.Config.ConfigPath)
+	scriptPath := filepath.Join(configDir, scriptName)
 
-	if err := os.WriteFile(interfacesPath, []byte(interfacesContent), 0644); err != nil {
-		return fmt.Errorf("failed to create interfaces file: %v", err)
+	if !utils.FileExists(scriptPath) {
+		return fmt.Errorf("startup script not found: %s", scriptPath)
 	}
 
-	// 创建 /etc/resolv.conf 作为备份
-	resolvPath := filepath.Join(b.BootfsPath, "etc", "resolv.conf")
-	resolvContent := `# DNS configuration for QEMU
-nameserver 10.0.2.3
-nameserver 114.114.114.114
-nameserver 8.8.8.8
-`
-	if err := os.WriteFile(resolvPath, []byte(resolvContent), 0644); err != nil {
-		return fmt.Errorf("failed to create resolv.conf: %v", err)
+	// 固定安装到 /root/setup.sh
+	targetPath := filepath.Join(b.BootfsPath, "root", "setup.sh")
+
+	// 确保目标目录存在
+	if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
+		return fmt.Errorf("failed to create target directory: %v", err)
 	}
 
-	fmt.Println("Network configuration completed")
-	return nil
-}
-
-// configureRootNoPassword 配置 root 无密码登录
-func (b *BootfsBuilder) configureRootNoPassword() error {
-	fmt.Println("Configuring root user (no password)...")
-
-	// 修改 /etc/shadow 文件，清空 root 密码字段
-	shadowPath := filepath.Join(b.BootfsPath, "etc", "shadow")
-
-	content, err := os.ReadFile(shadowPath)
-	if err != nil {
-		return fmt.Errorf("failed to read shadow file: %v", err)
+	// 复制脚本
+	if err := utils.CopyFile(scriptPath, targetPath); err != nil {
+		return fmt.Errorf("failed to copy script: %v", err)
 	}
 
-	// 修改 root 行的密码字段为空
-	lines := strings.Split(string(content), "\n")
-	for i, line := range lines {
-		if strings.HasPrefix(line, "root:") {
-			parts := strings.Split(line, ":")
-			if len(parts) >= 2 {
-				parts[1] = ""  // 清空密码字段，允许无密码登录
-				lines[i] = strings.Join(parts, ":")
-				break
-			}
-		}
+	// 设置执行权限
+	if err := os.Chmod(targetPath, 0755); err != nil {
+		return fmt.Errorf("failed to set script permissions: %v", err)
 	}
 
-	// 写回文件
-	newContent := strings.Join(lines, "\n")
-	if err := os.WriteFile(shadowPath, []byte(newContent), 0640); err != nil {
-		return fmt.Errorf("failed to write shadow file: %v", err)
-	}
+	fmt.Printf("Startup script installed to: /root/setup.sh\n")
 
-	fmt.Println("Root user configured for passwordless login")
-	return nil
-}
-
-// configureSSH 配置 SSH 服务以允许 root 无密码登录
-func (b *BootfsBuilder) configureSSH() error {
-	fmt.Println("Configuring SSH for passwordless root login...")
-
-	sshdConfigPath := filepath.Join(b.BootfsPath, "etc", "ssh", "sshd_config")
-	
-	// 检查文件是否存在
-	if !utils.FileExists(sshdConfigPath) {
-		// 如果文件不存在，创建目录和基本配置文件
-		sshDir := filepath.Join(b.BootfsPath, "etc", "ssh")
-		if err := os.MkdirAll(sshDir, 0755); err != nil {
-			return fmt.Errorf("failed to create SSH directory: %v", err)
-		}
-		
-		// 创建基本配置文件，包含必要的配置项
-		basicConfig := `# SSH Server Configuration
-# Basic configuration with passwordless root login
-
-Port 22
-PermitRootLogin yes
-PermitEmptyPasswords yes
-PasswordAuthentication yes
-UsePAM no
-`
-		if err := os.WriteFile(sshdConfigPath, []byte(basicConfig), 0644); err != nil {
-			return fmt.Errorf("failed to create sshd_config: %v", err)
-		}
-	} else {
-		// 如果文件存在，读取并修改指定配置项
-		content, err := os.ReadFile(sshdConfigPath)
-		if err != nil {
-			return fmt.Errorf("failed to read sshd_config: %v", err)
-		}
-		
-		// 要修改的配置项
-		configItems := map[string]string{
-			"PermitRootLogin":      "yes",
-			"PermitEmptyPasswords": "yes",
-			"PasswordAuthentication": "yes",
-			"UsePAM":               "no",
-		}
-		
-		// 处理配置文件
-		lines := strings.Split(string(content), "\n")
-		modifiedItems := make(map[string]bool)
-		
-		// 修改已存在的配置项
-		for i, line := range lines {
-			trimmedLine := strings.TrimSpace(line)
-			// 跳过空行和注释
-			if trimmedLine == "" || strings.HasPrefix(trimmedLine, "#") {
-				continue
-			}
-			
-			// 检查是否是要修改的配置项
-			for key, value := range configItems {
-				if strings.HasPrefix(trimmedLine, key) {
-					lines[i] = key + " " + value
-					modifiedItems[key] = true
-					break
-				}
-			}
-		}
-		
-		// 添加未找到的配置项
-		for key, value := range configItems {
-			if !modifiedItems[key] {
-				lines = append(lines, key + " " + value)
-			}
-		}
-		
-		// 写回文件
-		newContent := strings.Join(lines, "\n")
-		if err := os.WriteFile(sshdConfigPath, []byte(newContent), 0644); err != nil {
-			return fmt.Errorf("failed to write sshd_config: %v", err)
-		}
-	}
-
-	fmt.Println("SSH configured for passwordless root login")
 	return nil
 }
 

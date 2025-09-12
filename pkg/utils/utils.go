@@ -3,6 +3,7 @@ package utils
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -73,5 +74,27 @@ func Confirm(prompt string) bool {
 	}
 	response = strings.ToLower(strings.TrimSpace(response))
 	return response == "y" || response == "Y" || response == "yes"
+}
+
+// CopyFile 复制文件
+func CopyFile(src, dst string) error {
+	sourceFile, err := os.Open(src)
+	if err != nil {
+		return fmt.Errorf("failed to open source file %s: %v", src, err)
+	}
+	defer sourceFile.Close()
+
+	destFile, err := os.Create(dst)
+	if err != nil {
+		return fmt.Errorf("failed to create destination file %s: %v", dst, err)
+	}
+	defer destFile.Close()
+
+	_, err = io.Copy(destFile, sourceFile)
+	if err != nil {
+		return fmt.Errorf("failed to copy file content: %v", err)
+	}
+
+	return nil
 }
 
