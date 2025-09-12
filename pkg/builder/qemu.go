@@ -191,9 +191,10 @@ func (b *QemuBuilder) copyRootfs(mountPoint string) error {
 	if utils.CheckCommand("rsync") {
 		args := []string{
 			"-av",
+			"--devices",    // 复制设备文件
+			"--specials",   // 复制特殊文件（如FIFO、socket等）
 			"--exclude=/proc/*",
 			"--exclude=/sys/*",
-			"--exclude=/dev/*",
 			"--exclude=/tmp/*",
 			b.BootfsPath + "/",
 			mountPoint + "/",
