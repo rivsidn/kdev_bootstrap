@@ -41,6 +41,39 @@ setup_root_password() {
     echo "Root user configured for passwordless login"
 }
 
+# 配置 APT 软件源
+setup_apt_sources() {
+    echo "Configuring APT sources..."
+    
+    # 备份原有的 sources.list
+    if [ -f /etc/apt/sources.list ]; then
+        cp /etc/apt/sources.list /etc/apt/sources.list.backup
+        echo "Original sources.list backed up"
+    fi
+    
+    # 配置中科大镜像源
+    cat > /etc/apt/sources.list << 'EOF'
+# Ubuntu 5.10 (Breezy) APT Sources - USTC Mirror
+# 中科大ubuntu旧版本镜像源
+
+# 主仓库
+deb http://mirrors.ustc.edu.cn/ubuntu-old-releases/ubuntu/ breezy main restricted universe multiverse
+deb http://mirrors.ustc.edu.cn/ubuntu-old-releases/ubuntu/ breezy-security main restricted universe multiverse
+deb http://mirrors.ustc.edu.cn/ubuntu-old-releases/ubuntu/ breezy-updates main restricted universe multiverse
+deb http://mirrors.ustc.edu.cn/ubuntu-old-releases/ubuntu/ breezy-proposed main restricted universe multiverse
+deb http://mirrors.ustc.edu.cn/ubuntu-old-releases/ubuntu/ breezy-backports main restricted universe multiverse
+
+# 源码包仓库
+deb-src http://mirrors.ustc.edu.cn/ubuntu-old-releases/ubuntu/ breezy main restricted universe multiverse
+deb-src http://mirrors.ustc.edu.cn/ubuntu-old-releases/ubuntu/ breezy-security main restricted universe multiverse
+deb-src http://mirrors.ustc.edu.cn/ubuntu-old-releases/ubuntu/ breezy-updates main restricted universe multiverse
+deb-src http://mirrors.ustc.edu.cn/ubuntu-old-releases/ubuntu/ breezy-proposed main restricted universe multiverse
+deb-src http://mirrors.ustc.edu.cn/ubuntu-old-releases/ubuntu/ breezy-backports main restricted universe multiverse
+EOF
+    
+    echo "APT sources configured with USTC mirror"
+}
+
 # 配置 SSH 服务
 setup_ssh() {
     echo "Configuring SSH for passwordless root login..."
@@ -88,6 +121,7 @@ EOF
 # 执行所有配置
 setup_network
 setup_root_password
+setup_apt_sources
 setup_ssh
 
 echo ""
@@ -95,6 +129,9 @@ echo "Ubuntu 5.10 system configuration completed!"
 echo "System is now configured with:"
 echo "  - Network: DHCP enabled (will get IP 10.0.2.15 in QEMU)"
 echo "  - Root login: no password required (just type 'root')"
+echo "  - APT sources: configured with USTC mirror"
 echo "  - SSH: configured for passwordless root login"
 echo ""
+echo "To update package list: apt-get update"
+echo "To install packages: apt-get install package_name"
 echo "You can delete this script: rm /root/setup.sh"
