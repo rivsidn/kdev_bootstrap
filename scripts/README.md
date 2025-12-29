@@ -1,47 +1,43 @@
 
+## 调试脚本
 
-## QEMU 启动网络模式
+集合了docker、qemu 启动命令，编译、调试Linux 内核时使用.
 
-### QMEU USER 模式
 
-用于访问互联网.
-
-#### 启动命令
+### 编译
 
 ```bash
-			qemu-system-x86_64 -kernel $KDEV_KERNEL -hda $KDEV_QEMU_IMAGE \
-				-netdev user,id=net0,hostfwd=tcp::2222-:22,hostfwd=tcp::8080-:80 \
-				-device e1000,netdev=net0 \
-				-append "root=/dev/sda rw init=/sbin/init console=tty0" -m 256M
+source kdev_env
+
+kdev_build
 ```
 
-#### 参数解析
+### 运行
 
-| 参数    | 解析                       |
-|---------|----------------------------|
-| hostfwd | 将宿主机的端口映射到虚拟机 |
-
-
-#### 虚拟机配置
-
-**手动配置**
 
 ```bash
-# IP地址设置
-ifconfig eth0 10.0.2.15 netmask 255.255.255.0
+source kdev_env
 
-# 添加默认网关
-route add default gw 10.0.2.2
-
-# 配置 DNS
-echo "nameserver 10.0.2.3" > /etc/resolv.conf
+kdev_run terminal
 ```
 
-****
+| 模式     | 说明                                       |
+|----------|--------------------------------------------|
+| terminal | 终端启动                                   |
+| debug    | 调试模式，需要链接GDB 设备才能正常启动     |
+| internet | 网络模式，可以访问互联网                   |
+| bridge   | 桥模式，不仅可以访问互联网，还可以与PC互联 |
+
+
+### 文件传输
 
 ```bash
-```
 
+# 默认将文件传输到/root/
+
+kdev_push modules.ko 
+
+```
 
 
 ## 附录
