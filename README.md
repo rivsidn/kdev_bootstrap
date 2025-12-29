@@ -1,119 +1,74 @@
-# kdev_bootstrap - 内核调试环境构建工具
+# kdev_bootstrap
 
-## 系统架构
+用于构建内核调试环境的一套工具，参见 [基本原理](doc/基本原理.md).
 
-```
-配置文件 (.conf)
-    ↓
-kboot_build_bootfs (构建根文件系统)
-    ↓
-    ├── kboot_build_docker (生成 Docker 镜像)
-    └── kboot_build_qemu (生成 QEMU 镜像)
-```
 
-## 快速开始
-
-### 安装
+## 工程编译
 
 ```bash
-cd src
-chmod +x build.sh install.sh
-./build.sh          # 构建工具
-sudo ./install.sh   # 安装到系统
+# 编译
+chmod +x build.sh; bash build.sh
 ```
 
-### 使用示例
+## 使用示例
 
-1. **构建 Ubuntu 22.04 调试环境**
+以ubuntu-16.04 为例子.
+
+### 配置文件
+
+```ini
+[ubuntu-16.04]
+
+# 发行版信息
+distribution = ubuntu
+version = 16.04
+arch_supported = i386,amd64
+
+# 镜像源(使用阿里云镜像)
+mirror = http://mirrors.aliyun.com/ubuntu/
+
+# 系统配置脚本(需要指定路径)
+setup_script = ubuntu-16.04-setup.sh
+
+# 安装包
+kbuild_packages = make,gcc
+```
+
+### 构建系统
 
 ```bash
 # 构建根文件系统
-sudo kboot bootfs -f /usr/local/share/kdev-bootstrap/configs/ubuntu-22.04.conf -a amd64
+sudo ./kboot_build_bootfs -a amd64 -f ../configs/ubuntu-16.04.conf
+# 创建docker 镜像
+sudo ./kboot_build_docker -b ubuntu-16.04-amd64-bootfs/
+# 创建qemu 根文件系统
+sudo ./kboot_build_qemu -b ubuntu-16.04-amd64-bootfs/
 
-# 构建 Docker 镜像（用于编译）
-sudo kboot docker -b ubuntu-22.04-amd64-bootfs
-
-# 构建 QEMU 镜像（用于调试）
-sudo kboot qemu -b ubuntu-22.04-amd64-bootfs
 ```
 
-2. **使用 Docker 镜像编译内核**
+## 代码调试
+
+通过docker 镜像编译，通过qemu 调试内核.
+
+### 内核编译
 
 ```bash
-docker run -it --rm -v /path/to/kernel:/kernel ubuntu-22.04-amd64 /bin/bash
-# 在容器内编译内核
-cd /kernel
-make menuconfig
-make -j$(nproc)
+docker run -it --rm -v $KERNEL_PATH:/workspace -w /workspace --hostname kernel-dev $KDEV_DOCKER_IMAGE bash
 ```
 
-3. **使用 QEMU 调试内核**
+| 变量              | 说明           |
+|-------------------|----------------|
+| KERNEL_PATH       | 内核代码路径   |
+| KDEV_DOCKER_IMAGE | docker镜像名称 |
 
-```bash
-qemu-system-x86_64 \
-    -kernel /path/to/bzImage \
-    -hda ubuntu-22.04-amd64-rootfs.img \
-    -append "root=/dev/sda rw console=ttyS0" \
-    -m 2048 \
-    -enable-kvm \
-    -nographic
-```
+### 内核调试
 
-## 命令详解
+通过`qemu` 调试linux 内核.
 
-### kboot_build_bootfs
+## 附录
 
-构建根文件系统，使用 debootstrap 创建最小化 Ubuntu 环境。
+### 目录结构
 
-```bash
-kboot_build_bootfs [选项]
-  -f, --file FILE    配置文件路径（必需）
-  -a, --arch ARCH    目标架构（i386/amd64/arm64）
-  -o, --output DIR   输出目录
-  -h, --help         显示帮助
-```
-
-### kboot_build_docker
-
-从根文件系统构建 Docker 镜像。
-
-```bash
-kboot_build_docker [选项]
-  -b, --bootfs DIR        根文件系统路径（必需）
-  -f, --dockerfile FILE   Dockerfile 路径（可选）
-  --image NAME:TAG        镜像名称（可选）
-  -h, --help             显示帮助
-```
-
-### kboot_build_qemu
-
-从根文件系统构建 QEMU 磁盘镜像。
-
-```bash
-kboot_build_qemu [选项]
-  -b, --bootfs DIR     根文件系统路径（必需）
-  -r, --rootfs FILE    输出镜像名称（可选）
-  -s, --size SIZE      镜像大小（默认 2G）
-  -h, --help          显示帮助
-```
-
-## 配置文件格式
-
-```ini
-[ubuntu-22.04]
-distribution = ubuntu
-version = 22.04
-arch_supported = amd64,arm64
-mirror = http://mirrors.aliyun.com/ubuntu/
-
-# 软件包组
-kbuild_packages = make,gcc,build-essential,libncurses-dev
-module_packages = kmod
-debug_packages = gdb,strace
-network_packages = wget,curl,openssh-client
-```
-
-## 目录结构
 
 ```
 src/
@@ -122,45 +77,14 @@ src/
 │   ├── kboot_build_docker/
 │   └── kboot_build_qemu/
 ├── pkg/                    # 核心库
-│   ├── config/            # 配置解析
-│   ├── builder/           # 构建器实现
-│   └── utils/             # 工具函数
-├── configs/               # 示例配置文件
-├── build.sh              # 构建脚本
-├── install.sh            # 安装脚本
-└── Makefile              # Make 构建文件
+│   ├── config/             # 配置解析
+│   ├── builder/            # 构建器实现
+│   └── utils/              # 工具函数
+├── configs/                # 示例配置文件
+├── samples/                # 内核调试脚本示例
+├── build.sh                # 构建脚本
+└── Makefile                # Make 构建文件
 ```
-
-## 系统要求
-
-- Go 1.21 或更高版本
-- Ubuntu/Debian 系统
-- root 权限（用于 debootstrap 和挂载操作）
-- 依赖工具：debootstrap、docker、qemu-utils
-
-## 开发
-
-```bash
-# 获取代码
-git clone <repository>
-cd kdev_bootstrap/src
-
-# 构建
-make build
-
-# 运行测试
-make test
-
-# 安装到系统
-sudo make install
-
-# 清理
-make clean
-```
-
-## 附录
-
-### 地址
 
 ### Ubuntu版本内核对应
 
