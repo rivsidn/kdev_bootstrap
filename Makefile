@@ -52,6 +52,8 @@ build:
 .PHONY: clean
 clean:
 	@echo "Cleaning build artifacts..."
-	@rm -rf $(BINARY_DIR)
+	@for binary in $(BINARIES); do \
+		rm -f $(BINARY_DIR)/$$binary; \
+	done
 	@$(GO) clean
 	@echo "Clean completed"

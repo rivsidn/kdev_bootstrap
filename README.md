@@ -34,6 +34,12 @@ setup_script = ubuntu-16.04-setup.sh
 kbuild_packages = make,gcc
 ```
 
+| 参数           | 说明                                                      |
+|----------------|-----------------------------------------------------------|
+| arch_supported | 支持的架构                                                |
+| setup_script   | 初始化脚本，会自动拷贝到根文件系统/root 下，qemu 启动使用 |
+| xxx_packages   | 创建根文件系统时安装的软件包                              |
+
 ### 构建系统
 
 ```bash

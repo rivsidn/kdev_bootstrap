@@ -116,6 +116,7 @@ func (b *BootfsBuilder) runDebootstrap() error {
 	args := []string{
 		"--arch=" + b.Arch,
 		"--variant=buildd",
+		"--components=main,universe",
 	}
 
 	// 获取所有要安装的包
