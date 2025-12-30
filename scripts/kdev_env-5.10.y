@@ -114,7 +114,7 @@ kdev_run() {
 
 			# 使用 sudo 和 TAP 设备（更可靠）
 			sudo qemu-system-x86_64 -kernel $KDEV_KERNEL -hda $KDEV_QEMU_IMAGE \
-				-netdev tap,id=net0,script=/home/yuchao/github/kdev_bootstrap/samples/qemu-ifup,downscript=/home/yuchao/github/kdev_bootstrap/samples/qemu-ifdown \
+				-netdev tap,id=net0,script=/home/yuchao/github/kdev_bootstrap/scripts/qemu-ifup,downscript=/home/yuchao/github/kdev_bootstrap/scripts/qemu-ifdown \
 				-device e1000,netdev=net0 \
 				-gdb tcp::1234 \
 				-append "root=/dev/sda rw init=/usr/sbin/init console=tty0" -m 512M
