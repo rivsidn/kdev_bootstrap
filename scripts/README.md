@@ -29,6 +29,13 @@ kdev_run terminal
 | bridge   | 桥模式，不仅可以访问互联网，还可以与PC互联 |
 
 
+**注意: terminal模式启动调试内核的时候，需要手动挂载proc、sys 文件系统.**
+
+```bash
+mount -t proc  none /proc
+mount -t sysfs none /sys
+```
+
 ### 文件传输
 
 ```bash
