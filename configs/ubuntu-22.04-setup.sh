@@ -32,17 +32,8 @@ EOF
 
 # 配置 root 无密码登录
 setup_root_password() {
-    echo "Configuring root user (no password)..."
-
-    if [ -f /etc/shadow ]; then
-        sed -i 's/^root:[^:]*:/root::/' /etc/shadow
-        echo "Root password cleared in shadow file"
-    else
-        sed -i 's/^root:[^:]*:/root::/' /etc/passwd
-        echo "Root password cleared in passwd file"
-    fi
-
-    echo "Root user configured for passwordless login"
+    echo "root:root" | chpasswd
+    sync
 }
 
 # 配置 SSH 服务
