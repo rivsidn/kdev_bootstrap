@@ -7,7 +7,7 @@
 
 ```bash
 # 编译
-chmod +x build.sh; bash build.sh
+make clean; make build
 ```
 
 ## 使用示例
