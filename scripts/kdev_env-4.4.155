@@ -1,8 +1,17 @@
 #!/bin/bash
 
-export KDEV_KERNEL=arch/x86_64/boot/bzImage
-export KDEV_DOCKER_IMAGE=ubuntu-16.04-amd64
-export KDEV_QEMU_IMAGE=/opt/ubuntu-rootfs/ubuntu-16.04-amd64-rootfs.img
+KDEV_KERNEL=arch/x86_64/boot/bzImage
+KDEV_DOCKER_IMAGE=ubuntu-16.04-amd64
+KDEV_QEMU_IMAGE=/opt/ubuntu-rootfs/ubuntu-16.04-amd64-rootfs.img
+
+usage() {
+	echo "Usage: source $(basename "${BASH_SOURCE[0]}") && <function>"
+	echo ""
+	echo "Functions:"
+	echo "  kdev_build                    Start docker build environment"
+	echo "  kdev_push <src> [dst]         Copy files to QEMU rootfs image"
+	echo "  kdev_run <mode>               Run QEMU (terminal|debug|internet|bridge)"
+}
 
 alias kdev_build='docker run -it --rm -v $PWD:/workspace -w /workspace --hostname kernel-dev $KDEV_DOCKER_IMAGE bash'
 
@@ -101,7 +110,7 @@ kdev_run() {
 			echo "Setting up bridge br0..."
 
 			# 检查并创建桥接
-			if ! ip link show br0 &>/dev/null; then
+			if [ ! -d /sys/class/net/br0/bridge ]; then
 				sudo ip link add br0 type bridge
 				sudo ip link set br0 up
 				sudo ip addr add 172.20.0.1/24 dev br0
@@ -114,7 +123,7 @@ kdev_run() {
 
 			# 使用 sudo 和 TAP 设备（更可靠）
 			sudo qemu-system-x86_64 -kernel $KDEV_KERNEL -hda $KDEV_QEMU_IMAGE \
-				-netdev tap,id=net0,script=/home/yuchao/github/kdev_bootstrap/samples/qemu-ifup,downscript=/home/yuchao/github/kdev_bootstrap/samples/qemu-ifdown \
+				-netdev tap,id=net0,script=/etc/kdev-qemu-ifup,downscript=/etc/kdev-qemu-ifdown \
 				-device e1000,netdev=net0 \
 				-gdb tcp::1234 \
 				-append "root=/dev/sda rw init=/sbin/init console=tty0" -m 512M
@@ -129,3 +138,7 @@ kdev_run() {
 	esac
 }
 
+# 直接执行时显示 usage，source 时不执行
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+	usage
+fi
