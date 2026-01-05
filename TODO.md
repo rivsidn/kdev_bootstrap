@@ -1,5 +1,9 @@
 
-- ubuntu 22.04 版本 bridge 模式启动以后，无法添加tap 到桥中.
+- 补充说明，kdev_run bridge 模式如何访问互联网.
+
+- 为什么 scripts/kdev_env-5.10.y 的 qemu-ifup、qemu-ifdown 脚本需要与其他版本不同.
+
+  设置成 /etc/qemu-ifup 的时候，无法将tap 网口添加到桥中.
 
 - 直接以sudo 运行太吓人，如何解决
 - 如何设置不同版本的apt source
