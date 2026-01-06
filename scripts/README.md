@@ -29,13 +29,6 @@ kdev_run terminal
 | bridge   | 桥模式，不仅可以访问互联网，还可以与PC互联 |
 
 
-**注意: terminal模式启动调试内核的时候，需要手动挂载proc、sys 文件系统.**
-
-```bash
-mount -t proc  none /proc
-mount -t sysfs none /sys
-```
-
 ### 文件传输
 
 ```bash
@@ -46,8 +39,44 @@ kdev_push modules.ko
 
 ```
 
-
 ## 附录
+
+### 常见问题
+
+#### terminal模式模块卸载问题
+
+现象.
+
+```
+root@(none):/root# rmmod waitqueue_sample
+rmmod: ERROR: ../libkmod/libkmod.c:514 lookup_builtin_file() could not open builtin file '/lib/modules/4.4.115/modules.builtin.bin'
+rmmod: ERROR: Module waitqueue_sample is not currently loaded
+```
+
+**terminal模式启动调试内核的时候，需要手动挂载proc、sys 文件系统.**
+
+```bash
+mount -t proc  none /proc
+mount -t sysfs none /sys
+```
+
+#### bridge模式网络访问
+
+如何设置访问互联网.
+
+```bash
+#  虚拟机设置
+## 网口link
+ip link set eth0 up
+## 设置IP地址
+ip addr add 172.20.0.2/24 dev eth0
+## 添加默认路由
+ip route add default via 172.20.0.1
+
+# 宿主机设置
+sudo iptables -t nat -A POSTROUTING -s 172.20.0.0/24 ! -o tap0 -j MASQUERADE
+
+```
 
 ### 地址说明
 
