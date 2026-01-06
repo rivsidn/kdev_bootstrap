@@ -32,20 +32,8 @@ EOF
 
 # 配置 root 无密码登录
 setup_root_password() {
-    echo "Configuring root user (no password)..."
-    
-    # Ubuntu 16.04 使用 shadow 密码系统
-    if [ -f /etc/shadow ]; then
-        # 清空 root 密码字段，允许无密码登录
-        sed -i 's/^root:[^:]*:/root::/' /etc/shadow
-        echo "Root password cleared in shadow file"
-    else
-        # 如果没有 shadow 文件，修改 passwd 文件
-        sed -i 's/^root:[^:]*:/root::/' /etc/passwd
-        echo "Root password cleared in passwd file"
-    fi
-    
-    echo "Root user configured for passwordless login"
+    echo "root:passwd" | chpasswd
+    sync
 }
 
 # 配置 SSH 服务

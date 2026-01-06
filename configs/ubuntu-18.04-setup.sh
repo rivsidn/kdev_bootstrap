@@ -33,7 +33,7 @@ EOF
 # 配置 root 账户
 setup_root_password() {
     echo "Setting root password to 'root'..."
-    echo "root:root" | chpasswd
+    echo "root:passwd" | chpasswd
     sync
 }
 

@@ -32,7 +32,7 @@ EOF
 
 # 配置 root 无密码登录
 setup_root_password() {
-    echo "root:root" | chpasswd
+    echo "root:passwd" | chpasswd
     sync
 }
 
