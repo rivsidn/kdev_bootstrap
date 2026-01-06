@@ -62,7 +62,7 @@ mount -t sysfs none /sys
 
 #### bridge模式网络访问
 
-如何设置访问互联网.
+如何设置访问互联网，执行`setup.sh` 脚本之后，还需要执行如下配置.
 
 ```bash
 #  虚拟机设置
