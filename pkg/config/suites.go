@@ -2,6 +2,7 @@ package config
 
 var UbuntuSuiteMap = map[string]string{
 	"5.10":  "breezy",
+	"10.10": "maverick",
 	"16.04": "xenial",
 	"18.04": "bionic",
 	"20.04": "focal",

@@ -1,0 +1,122 @@
+#!/bin/bash
+# Ubuntu 10.10 系统配置脚本
+# 在系统启动后运行此脚本完成网络、用户、SSH等配置
+
+echo "Starting Ubuntu 10.10 system configuration..."
+
+# 配置网络
+setup_network() {
+    echo "Configuring network..."
+
+    # 创建网络配置文件
+    cat > /etc/network/interfaces << 'EOF'
+# interfaces(5) file used by ifup(8) and ifdown(8)
+auto lo
+iface lo inet loopback
+
+# QEMU 网络配置 - 自动获取 IP
+auto eth0
+iface eth0 inet dhcp
+EOF
+
+    # 配置DNS
+    cat > /etc/resolv.conf << 'EOF'
+# DNS configuration for QEMU
+nameserver 10.0.2.3
+nameserver 114.114.114.114
+nameserver 8.8.8.8
+EOF
+
+    echo "Network configuration completed"
+}
+
+# 配置 root 用户密码
+setup_root_password() {
+    echo "root:passwd" | chpasswd
+    sync
+}
+
+# 配置 APT 软件源
+setup_apt_sources() {
+    echo "Configuring APT sources..."
+
+    # 备份原有的 sources.list
+    if [ -f /etc/apt/sources.list ]; then
+        cp /etc/apt/sources.list /etc/apt/sources.list.backup
+        echo "Original sources.list backed up"
+    fi
+
+    # 配置中科大镜像源
+    cat > /etc/apt/sources.list << 'EOF'
+# Ubuntu 10.10 (Maverick) APT Sources - USTC Mirror
+# 中科大ubuntu旧版本镜像源
+
+# 主仓库
+deb http://mirrors.ustc.edu.cn/ubuntu-old-releases/ubuntu/ maverick main restricted universe multiverse
+deb http://mirrors.ustc.edu.cn/ubuntu-old-releases/ubuntu/ maverick-security main restricted universe multiverse
+deb http://mirrors.ustc.edu.cn/ubuntu-old-releases/ubuntu/ maverick-updates main restricted universe multiverse
+deb http://mirrors.ustc.edu.cn/ubuntu-old-releases/ubuntu/ maverick-proposed main restricted universe multiverse
+deb http://mirrors.ustc.edu.cn/ubuntu-old-releases/ubuntu/ maverick-backports main restricted universe multiverse
+
+# 源码包仓库
+deb-src http://mirrors.ustc.edu.cn/ubuntu-old-releases/ubuntu/ maverick main restricted universe multiverse
+deb-src http://mirrors.ustc.edu.cn/ubuntu-old-releases/ubuntu/ maverick-security main restricted universe multiverse
+deb-src http://mirrors.ustc.edu.cn/ubuntu-old-releases/ubuntu/ maverick-updates main restricted universe multiverse
+deb-src http://mirrors.ustc.edu.cn/ubuntu-old-releases/ubuntu/ maverick-proposed main restricted universe multiverse
+deb-src http://mirrors.ustc.edu.cn/ubuntu-old-releases/ubuntu/ maverick-backports main restricted universe multiverse
+EOF
+
+    echo "APT sources configured with USTC mirror"
+}
+
+# 配置 SSH 服务
+setup_ssh() {
+    echo "Configuring SSH for root login..."
+
+    # 检查 SSH 配置文件是否存在
+    if [ -f /etc/ssh/sshd_config ]; then
+        # 修改 SSH 配置允许 root 登录
+        sed -i 's/^#*PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+        sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
+
+        # 如果配置项不存在，添加它们
+        if ! grep -q "^PermitRootLogin" /etc/ssh/sshd_config; then
+            echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
+        fi
+        if ! grep -q "^PasswordAuthentication" /etc/ssh/sshd_config; then
+            echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config
+        fi
+
+        echo "SSH configured for root login"
+    else
+        # 如果 SSH 配置文件不存在，创建基本配置
+        mkdir -p /etc/ssh
+        cat > /etc/ssh/sshd_config << 'EOF'
+# SSH Server Configuration
+# Basic configuration with root login
+
+Port 22
+PermitRootLogin yes
+PasswordAuthentication yes
+EOF
+        echo "SSH basic configuration created"
+    fi
+}
+
+# 执行所有配置
+setup_network
+setup_root_password
+setup_apt_sources
+setup_ssh
+
+echo ""
+echo "Ubuntu 10.10 system configuration completed!"
+echo "System is now configured with:"
+echo "  - Network: DHCP enabled (will get IP 10.0.2.15 in QEMU)"
+echo "  - Root login: username=root, password=passwd"
+echo "  - APT sources: configured with USTC mirror"
+echo "  - SSH: configured for root login"
+echo ""
+echo "To update package list: apt-get update"
+echo "To install packages: apt-get install package_name"
+echo "You can delete this script: rm /root/setup.sh"
