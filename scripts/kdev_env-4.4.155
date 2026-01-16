@@ -110,7 +110,7 @@ kdev_run() {
 			echo "Setting up bridge br0..."
 
 			# 检查并创建桥接
-			if [ ! -d /sys/class/net/br0/bridge ]; then
+			if ! ip link show br0 &>/dev/null; then
 				sudo ip link add br0 type bridge
 				sudo ip link set br0 up
 				sudo ip addr add 172.20.0.1/24 dev br0
